@@ -15,7 +15,8 @@ const STATE = {
   examTimeLeft: 0,
   wrongBook: JSON.parse(localStorage.getItem('cpa_wrongbook') || '[]'),
   stats: JSON.parse(localStorage.getItem('cpa_stats') || '{"total":0,"correct":0,"days":[]}'),
-  examHistory: JSON.parse(localStorage.getItem('cpa_exam_history') || '[]')
+  examHistory: JSON.parse(localStorage.getItem('cpa_exam_history') || '[]'),
+  submittedQuestions: new Set()
 };
 
 // ---- 初始化 ----
@@ -229,6 +230,7 @@ function startChapterPractice(chapterId) {
   STATE.practiceChapter = chapterId;
   STATE.quizIndex = 0;
   STATE.quizAnswers = {};
+  STATE.submittedQuestions = new Set();
 
   let questions = QUESTIONS.filter(q => q.chapter === chapterId);
 
@@ -269,7 +271,8 @@ function renderQuiz() {
   const typeClass = 'qtype-' + (q.type === 'complex' ? 'complex' : q.type === 'calc' ? 'calc' : q.type === 'multi' ? 'multi' : 'single');
   const multiHint = q.type === 'multi' ? '（多选，请选择所有正确答案）' : '';
   const userAnswer = STATE.quizAnswers[q.id] || [];
-  const isAnswered = STATE.quizAnswers[q.id] !== undefined && STATE.quizAnswers[q.id].length > 0;
+  const hasSelection = STATE.quizAnswers[q.id] !== undefined && STATE.quizAnswers[q.id].length > 0;
+  const isSubmitted = STATE.submittedQuestions.has(q.id);
 
   container.innerHTML = `
     <div class="quiz-header">
@@ -286,22 +289,22 @@ function renderQuiz() {
           let cls = '';
           const isCorrectOption = q.answer.includes(i);
           const isSelected = userAnswer.includes(i);
-          if (isAnswered && isCorrectOption) cls = 'correct';
-          else if (isAnswered && isSelected && !isCorrectOption) cls = 'wrong';
-          else if (!isAnswered && isSelected) cls = 'selected';
-          return `<div class="option ${cls}" onclick="${isAnswered ? '' : `toggleOption(${i})`}">
+          if (isSubmitted && isCorrectOption) cls = 'correct';
+          else if (isSubmitted && isSelected && !isCorrectOption) cls = 'wrong';
+          else if (!isSubmitted && isSelected) cls = 'selected';
+          return `<div class="option ${cls}" onclick="${isSubmitted ? '' : `toggleOption(${i})`}">
             <div class="option-letter">${letter}</div>
             <div>${optText}</div>
           </div>`;
         }).join('')}
       </div>
       ${multiHint ? `<p style="font-size:13px;color:var(--warning);margin-top:8px;">${multiHint}</p>` : ''}
-      ${isAnswered ? renderExplanation(q) : ''}
+      ${isSubmitted ? renderExplanation(q) : ''}
     </div>
     <div class="quiz-actions">
-      ${!isAnswered ? `<button class="btn btn-primary" onclick="submitAnswer()">✓ 提交答案</button>` : ''}
-      ${isAnswered && STATE.quizIndex < STATE.quizQuestions.length - 1 ? `<button class="btn btn-primary" onclick="nextQuestion()">下一题 →</button>` : ''}
-      ${isAnswered && STATE.quizIndex === STATE.quizQuestions.length - 1 ? `<button class="btn btn-success" onclick="showQuizResult()">查看结果</button>` : ''}
+      ${hasSelection && !isSubmitted ? `<button class="btn btn-primary" onclick="submitAnswer()">✓ 提交答案</button>` : ''}
+      ${isSubmitted && STATE.quizIndex < STATE.quizQuestions.length - 1 ? `<button class="btn btn-primary" onclick="nextQuestion()">下一题 →</button>` : ''}
+      ${isSubmitted && STATE.quizIndex === STATE.quizQuestions.length - 1 ? `<button class="btn btn-success" onclick="showQuizResult()">查看结果</button>` : ''}
       <button class="btn btn-outline" onclick="navigateTo('practice')">返回章节列表</button>
     </div>`;
 }
@@ -343,6 +346,7 @@ function renderExplanation(q) {
 function toggleOption(index) {
   const q = STATE.quizQuestions[STATE.quizIndex];
   if (!q) return;
+  if (STATE.submittedQuestions.has(q.id)) return;
   if (!STATE.quizAnswers[q.id]) STATE.quizAnswers[q.id] = [];
   if (q.type === 'single' || q.type === 'calc' || q.type === 'complex') {
     STATE.quizAnswers[q.id] = [index];
@@ -374,6 +378,9 @@ function submitAnswer() {
 
   // 记录已做题（修复已练0题bug的核心）
   markQuestionDone(q.id, q.chapter);
+
+  // 标记已提交（触发错题本、统计等逻辑）
+  STATE.submittedQuestions.add(q.id);
 
   // 错题本
   if (!isCorrect) {
@@ -465,6 +472,7 @@ function startMockExam() {
   STATE.quizQuestions = generateMockExam();
   STATE.quizIndex = 0;
   STATE.quizAnswers = {};
+  STATE.submittedQuestions = new Set();
   STATE.examTimeLeft = 180 * 60;
   navigateTo('practice-quiz');
   renderExamQuiz();
@@ -641,6 +649,7 @@ function startRealExam(idx) {
   STATE.quizQuestions = generateRealExam();
   STATE.quizIndex = 0;
   STATE.quizAnswers = {};
+  STATE.submittedQuestions = new Set();
   STATE.examTimeLeft = 180 * 60;
   navigateTo('practice-quiz');
   // 显示真题提示
@@ -701,6 +710,7 @@ function retryWrongQuestion(questionId) {
   STATE.practiceChapter = q.chapter;
   STATE.quizIndex = 0;
   STATE.quizAnswers = {};
+  STATE.submittedQuestions = new Set();
   STATE.quizQuestions = [q];
   navigateTo('practice-quiz');
   renderQuiz();
