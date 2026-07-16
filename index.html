@@ -172,6 +172,8 @@ body {
 .explanation.show { display:block; animation: fadeIn .3s ease; }
 .explanation-title { font-weight: 700; color: var(--success); margin-bottom: 8px; font-size: 15px; }
 .explanation-body { font-size: 14px; line-height: 1.8; color: #374151; }
+.explanation.wrong { background: #fff5f5; border-color: #fecaca; }
+.explanation.wrong .explanation-title { color: var(--danger); }
 .knowledge-tag {
   display:inline-block; padding: 4px 10px; background: #dbeafe; color: #1e40af;
   border-radius: 4px; font-size: 12px; margin: 4px 4px 0 0;
@@ -249,6 +251,18 @@ body {
 .result-item .num { font-size: 24px; font-weight: 700; }
 .result-item .lbl { font-size: 13px; color: var(--text-secondary); }
 
+/* Badges */
+.badge { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:600; vertical-align:middle; margin-left:4px; }
+.badge-high { background:#fee2e2; color:#991b1b; }
+.badge-mid { background:#fef3c7; color:#92400e; }
+
+/* Importance indicators */
+.importance-high { border-left: 3px solid var(--danger) !important; }
+.importance-mid { border-left: 3px solid var(--warning) !important; }
+
+/* Recommendation */
+.recommend-item:hover { background: var(--primary-light) !important; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }
@@ -303,6 +317,10 @@ body {
       <div class="card">
         <div class="card-title">📊 章节完成度</div>
         <div id="chapter-progress"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🤖 智能推荐</div>
+        <div id="recommendation-area"></div>
       </div>
       <div class="card">
         <div class="card-title">🔥 快速开始</div>
